@@ -40,3 +40,15 @@ bin/
 
 ### Mac OS ###
 .DS_Store
+
+### Logs ###
+logs/
+*.log
+
+### Environment ###
+.env
+.env.local
+.env.production
+
+### Runtime ###
+mcp-server.log
