@@ -1,0 +1,61 @@
+2025-07-24 00:20:03.021 [main] INFO  Main - Starting Play Store MCP Server...
+2025-07-24 00:20:03.232 [main] DEBUG i.m.kotlin.sdk.server.Server - Initializing MCP server with capabilities: ServerCapabilities(experimental={}, sampling={}, logging={}, prompts=Prompts(listChanged=true), resources=null, tools=Tools(listChanged=true))
+2025-07-24 00:20:03.245 [main] INFO  io.devexpert.mcp.PlayStoreMcpServer - Setting up Play Store MCP Server capabilities:
+2025-07-24 00:20:03.245 [main] INFO  io.devexpert.mcp.PlayStoreMcpServer - - Tools: ListChanged=true
+2025-07-24 00:20:03.245 [main] INFO  io.devexpert.mcp.PlayStoreMcpServer - - Prompts: ListChanged=true
+2025-07-24 00:20:03.246 [main] INFO  io.devexpert.mcp.PlayStoreMcpServer - - Logging: Enabled=true
+2025-07-24 00:20:03.246 [main] DEBUG io.devexpert.mcp.PlayStoreMcpServer - Setting up MCP tools...
+2025-07-24 00:20:03.246 [main] INFO  io.devexpert.mcp.PlayStoreMcpServer - Initializing Play Store Service...
+2025-07-24 00:20:03.247 [main] INFO  io.devexpert.mcp.PlayStoreMcpServer - Play Store Configuration:
+2025-07-24 00:20:03.247 [main] INFO  io.devexpert.mcp.PlayStoreMcpServer - - Service Account Key Path: /Users/antonio/IdeaProjects/play-store-mcp/service-account-key.json
+2025-07-24 00:20:03.247 [main] INFO  io.devexpert.mcp.PlayStoreMcpServer - - Application Name: Play Store MCP Server
+2025-07-24 00:20:03.247 [main] INFO  io.devexpert.mcp.PlayStoreMcpServer - - Default Track: internal
+2025-07-24 00:20:03.249 [main] INFO  i.d.playstore.PlayStoreService - Initializing Play Store Service...
+2025-07-24 00:20:03.249 [main] INFO  io.devexpert.tools.PlayStoreTools - Registering Play Store deployment tools...
+2025-07-24 00:20:03.252 [main] INFO  i.m.kotlin.sdk.server.Server - Registering tool: deploy_app
+2025-07-24 00:20:03.253 [main] INFO  i.m.kotlin.sdk.server.Server - Registering tool: promote_release
+2025-07-24 00:20:03.254 [main] INFO  i.m.kotlin.sdk.server.Server - Registering tool: get_releases
+2025-07-24 00:20:03.254 [main] INFO  io.devexpert.tools.PlayStoreTools - Play Store tools registered successfully: deploy_app, promote_release, get_releases
+2025-07-24 00:20:03.254 [main] INFO  io.devexpert.mcp.PlayStoreMcpServer - Initializing Play Store MCP Server v1.0.0
+2025-07-24 00:20:03.254 [main] INFO  Main - Play Store MCP Server initialized successfully
+2025-07-24 00:20:03.254 [main] INFO  i.devexpert.transport.StdioTransport - Starting STDIO transport...
+2025-07-24 00:20:03.270 [main] INFO  i.devexpert.transport.StdioTransport - STDIO transport initialized successfully
+2025-07-24 00:20:03.275 [main] INFO  i.devexpert.transport.StdioTransport - Connecting server to STDIO transport...
+2025-07-24 00:20:03.280 [main] INFO  i.devexpert.transport.StdioTransport - Server connected successfully - ready to process MCP requests
+2025-07-24 00:20:03.310 [DefaultDispatcher-worker-2] INFO  i.m.kotlin.sdk.server.Server - Handling initialize request from client Implementation(name=claude-code, version=1.0.59)
+2025-07-24 00:20:03.310 [DefaultDispatcher-worker-2] WARN  i.m.kotlin.sdk.server.Server - Client requested unsupported protocol version 2025-06-18, falling back to 2024-11-05
+2025-07-24 00:20:03.318 [DefaultDispatcher-worker-2] ERROR i.m.kotlin.sdk.shared.Protocol - Error handling notification: notifications/initialized
+java.util.NoSuchElementException: Key method is missing in the map.
+	at kotlin.collections.MapsKt__MapWithDefaultKt.getOrImplicitDefaultNullable(MapWithDefault.kt:24)
+	at kotlin.collections.MapsKt__MapsKt.getValue(Maps.kt:370)
+	at io.modelcontextprotocol.kotlin.sdk.Types_utilKt.selectClientNotificationDeserializer(types.util.kt:137)
+	at io.modelcontextprotocol.kotlin.sdk.Types_utilKt.access$selectClientNotificationDeserializer(types.util.kt:1)
+	at io.modelcontextprotocol.kotlin.sdk.NotificationPolymorphicSerializer.selectDeserializer(types.util.kt:187)
+	at kotlinx.serialization.json.JsonContentPolymorphicSerializer.deserialize(JsonContentPolymorphicSerializer.kt:93)
+	at kotlinx.serialization.json.internal.AbstractJsonTreeDecoder.decodeSerializableValue(TreeJsonDecoder.kt:351)
+	at kotlinx.serialization.json.internal.TreeJsonDecoderKt.readJson(TreeJsonDecoder.kt:25)
+	at kotlinx.serialization.json.Json.decodeFromJsonElement(Json.kt:170)
+	at io.modelcontextprotocol.kotlin.sdk.TypesKt.fromJSON(types.kt:1474)
+	at io.modelcontextprotocol.kotlin.sdk.shared.Protocol$setNotificationHandler$1.invokeSuspend(Protocol.kt:477)
+	at io.modelcontextprotocol.kotlin.sdk.shared.Protocol$setNotificationHandler$1.invoke(Protocol.kt)
+	at io.modelcontextprotocol.kotlin.sdk.shared.Protocol$setNotificationHandler$1.invoke(Protocol.kt)
+	at io.modelcontextprotocol.kotlin.sdk.shared.Protocol.onNotification(Protocol.kt:198)
+	at io.modelcontextprotocol.kotlin.sdk.shared.Protocol.access$onNotification(Protocol.kt:93)
+	at io.modelcontextprotocol.kotlin.sdk.shared.Protocol$connect$4.invokeSuspend(Protocol.kt:167)
+	at io.modelcontextprotocol.kotlin.sdk.shared.Protocol$connect$4.invoke(Protocol.kt)
+	at io.modelcontextprotocol.kotlin.sdk.shared.Protocol$connect$4.invoke(Protocol.kt)
+	at io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport$onMessage$1.invokeSuspend(Transport.kt:94)
+	at io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport$onMessage$1.invoke(Transport.kt)
+	at io.modelcontextprotocol.kotlin.sdk.shared.AbstractTransport$onMessage$1.invoke(Transport.kt)
+	at io.modelcontextprotocol.kotlin.sdk.server.StdioServerTransport.processReadBuffer(StdioServerTransport.kt:106)
+	at io.modelcontextprotocol.kotlin.sdk.server.StdioServerTransport.access$processReadBuffer(StdioServerTransport.kt:20)
+	at io.modelcontextprotocol.kotlin.sdk.server.StdioServerTransport$start$3.invokeSuspend(StdioServerTransport.kt:72)
+	at kotlin.coroutines.jvm.internal.BaseContinuationImpl.resumeWith(ContinuationImpl.kt:33)
+	at kotlinx.coroutines.DispatchedTask.run(DispatchedTask.kt:100)
+	at kotlinx.coroutines.internal.LimitedDispatcher$Worker.run(LimitedDispatcher.kt:124)
+	at kotlinx.coroutines.scheduling.TaskImpl.run(Tasks.kt:89)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler.runSafely(CoroutineScheduler.kt:586)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.executeTask(CoroutineScheduler.kt:820)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.runWorker(CoroutineScheduler.kt:717)
+	at kotlinx.coroutines.scheduling.CoroutineScheduler$Worker.run(CoroutineScheduler.kt:704)
+2025-07-24 00:20:03.321 [DefaultDispatcher-worker-2] DEBUG i.m.kotlin.sdk.server.Server - Handling list prompts request
