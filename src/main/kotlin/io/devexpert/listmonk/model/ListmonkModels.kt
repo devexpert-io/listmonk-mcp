@@ -73,8 +73,8 @@ data class MailingList(
     val id: Int? = null,
     val uuid: String? = null,
     val name: String,
-    val type: ListType,
-    val optin: OptinType,
+    val type: ListType? = null,
+    val optin: OptinType? = null,
     val tags: List<String>? = null,
     val description: String? = null,
     @SerialName("subscriber_count")
@@ -232,4 +232,45 @@ data class CreateCampaignRequest(
 @Serializable
 data class UpdateCampaignStatusRequest(
     val status: CampaignStatus
+)
+
+@Serializable
+data class Template(
+    val id: Int? = null,
+    val name: String,
+    val type: TemplateType,
+    val subject: String? = null,
+    val body: String,
+    @SerialName("is_default")
+    val isDefault: Boolean? = null,
+    @SerialName("created_at")
+    val createdAt: String? = null,
+    @SerialName("updated_at")
+    val updatedAt: String? = null
+)
+
+@Serializable
+enum class TemplateType {
+    @SerialName("campaign")
+    CAMPAIGN,
+    @SerialName("campaign_visual")
+    CAMPAIGN_VISUAL,
+    @SerialName("tx")
+    TX
+}
+
+@Serializable
+data class CreateTemplateRequest(
+    val name: String,
+    val type: TemplateType,
+    val body: String,
+    val subject: String? = null
+)
+
+@Serializable
+data class UpdateTemplateRequest(
+    val name: String? = null,
+    val type: TemplateType? = null,
+    val body: String? = null,
+    val subject: String? = null
 )

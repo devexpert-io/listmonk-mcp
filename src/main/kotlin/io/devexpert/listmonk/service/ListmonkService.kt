@@ -231,6 +231,62 @@ class ListmonkService(private val config: ListmonkConfig) {
         response.body<ApiResponse<Unit>>()
     }
     
+    // Template operations
+    suspend fun getTemplates(): Result<ApiResponse<List<Template>>> = runCatching {
+        logger.info { "Getting templates" }
+        
+        val response = httpClient.get("${config.normalizedBaseUrl}/api/templates")
+        response.body<ApiResponse<List<Template>>>()
+    }
+    
+    suspend fun getTemplate(id: Int): Result<ApiResponse<Template>> = runCatching {
+        logger.info { "Getting template: id=$id" }
+        
+        val response = httpClient.get("${config.normalizedBaseUrl}/api/templates/$id")
+        response.body<ApiResponse<Template>>()
+    }
+    
+    suspend fun getTemplatePreview(id: Int): Result<String> = runCatching {
+        logger.info { "Getting template preview: id=$id" }
+        
+        val response = httpClient.get("${config.normalizedBaseUrl}/api/templates/$id/preview")
+        response.body<String>()
+    }
+    
+    suspend fun createTemplate(request: CreateTemplateRequest): Result<ApiResponse<Template>> = runCatching {
+        logger.info { "Creating template: name=${request.name}" }
+        
+        val response = httpClient.post("${config.normalizedBaseUrl}/api/templates") {
+            setBody(request)
+        }
+        
+        response.body<ApiResponse<Template>>()
+    }
+    
+    suspend fun updateTemplate(id: Int, request: UpdateTemplateRequest): Result<ApiResponse<Template>> = runCatching {
+        logger.info { "Updating template: id=$id" }
+        
+        val response = httpClient.put("${config.normalizedBaseUrl}/api/templates/$id") {
+            setBody(request)
+        }
+        
+        response.body<ApiResponse<Template>>()
+    }
+    
+    suspend fun setDefaultTemplate(id: Int): Result<ApiResponse<Template>> = runCatching {
+        logger.info { "Setting default template: id=$id" }
+        
+        val response = httpClient.put("${config.normalizedBaseUrl}/api/templates/$id/default")
+        response.body<ApiResponse<Template>>()
+    }
+    
+    suspend fun deleteTemplate(id: Int): Result<ApiResponse<Unit>> = runCatching {
+        logger.info { "Deleting template: id=$id" }
+        
+        val response = httpClient.delete("${config.normalizedBaseUrl}/api/templates/$id")
+        response.body<ApiResponse<Unit>>()
+    }
+    
     fun close() {
         httpClient.close()
     }

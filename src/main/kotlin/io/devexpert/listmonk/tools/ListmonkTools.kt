@@ -38,7 +38,16 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
         registerUpdateCampaignStatusTool(server)
         registerDeleteCampaignTool(server)
         
-        logger.info("Listmonk tools registered successfully: 15 tools available")
+        // Template tools
+        registerGetTemplatesTool(server)
+        registerGetTemplateTool(server)
+        registerGetTemplatePreviewTool(server)
+        registerCreateTemplateTool(server)
+        registerUpdateTemplateTool(server)
+        registerSetDefaultTemplateTool(server)
+        registerDeleteTemplateTool(server)
+        
+        logger.info("Listmonk tools registered successfully: 22 tools available")
     }
     
     // Subscriber Tools
@@ -206,10 +215,18 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 )
             }
             
-            val listsStr = request.arguments.getArgument("lists", "")
-            val lists = if (listsStr.isNotBlank()) {
+            // Handle lists array parameter
+            val listsElement = request.arguments["lists"]
+            val lists = if (listsElement != null) {
                 try {
-                    Json.parseToJsonElement(listsStr).jsonArray.map { it.jsonPrimitive.int }
+                    when (listsElement) {
+                        is JsonArray -> listsElement.map { it.jsonPrimitive.int }
+                        is JsonPrimitive -> {
+                            // Handle case where it might be passed as a JSON string
+                            Json.parseToJsonElement(listsElement.content).jsonArray.map { it.jsonPrimitive.int }
+                        }
+                        else -> null
+                    }
                 } catch (e: Exception) {
                     null
                 }
@@ -299,10 +316,18 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 )
             }
             
-            val listsStr = request.arguments.getArgument("lists", "")
-            val lists = if (listsStr.isNotBlank()) {
+            // Handle lists array parameter
+            val listsElement = request.arguments["lists"]
+            val lists = if (listsElement != null) {
                 try {
-                    Json.parseToJsonElement(listsStr).jsonArray.map { it.jsonPrimitive.int }
+                    when (listsElement) {
+                        is JsonArray -> listsElement.map { it.jsonPrimitive.int }
+                        is JsonPrimitive -> {
+                            // Handle case where it might be passed as a JSON string
+                            Json.parseToJsonElement(listsElement.content).jsonArray.map { it.jsonPrimitive.int }
+                        }
+                        else -> null
+                    }
                 } catch (e: Exception) {
                     null
                 }
@@ -527,10 +552,18 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 )
             }
             
-            val tagsStr = request.arguments.getArgument("tags", "")
-            val tags = if (tagsStr.isNotBlank()) {
+            // Handle tags array parameter
+            val tagsElement = request.arguments["tags"]
+            val tags = if (tagsElement != null) {
                 try {
-                    Json.parseToJsonElement(tagsStr).jsonArray.map { it.jsonPrimitive.content }
+                    when (tagsElement) {
+                        is JsonArray -> tagsElement.map { it.jsonPrimitive.content }
+                        is JsonPrimitive -> {
+                            // Handle case where it might be passed as a JSON string
+                            Json.parseToJsonElement(tagsElement.content).jsonArray.map { it.jsonPrimitive.content }
+                        }
+                        else -> null
+                    }
                 } catch (e: Exception) {
                     null
                 }
@@ -637,10 +670,18 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 )
             }
             
-            val tagsStr = request.arguments.getArgument("tags", "")
-            val tags = if (tagsStr.isNotBlank()) {
+            // Handle tags array parameter
+            val tagsElement = request.arguments["tags"]
+            val tags = if (tagsElement != null) {
                 try {
-                    Json.parseToJsonElement(tagsStr).jsonArray.map { it.jsonPrimitive.content }
+                    when (tagsElement) {
+                        is JsonArray -> tagsElement.map { it.jsonPrimitive.content }
+                        is JsonPrimitive -> {
+                            // Handle case where it might be passed as a JSON string
+                            Json.parseToJsonElement(tagsElement.content).jsonArray.map { it.jsonPrimitive.content }
+                        }
+                        else -> null
+                    }
                 } catch (e: Exception) {
                     null
                 }
@@ -875,7 +916,7 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                     put("send_at", buildJsonObject {
                         put("type", JsonPrimitive("string"))
                         put("format", JsonPrimitive("date-time"))
-                        put("description", JsonPrimitive("Schedule send time (ISO format)"))
+                        put("description", JsonPrimitive("Schedule send time in local timezone (formats: '19:00', '2024-07-24T19:00:00', '2024-07-24 19:00:00')"))
                     })
                 },
                 required = listOf("name", "subject", "lists")
@@ -883,16 +924,25 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
         ) { request ->
             val name = request.arguments.getArgument("name", "")
             val subject = request.arguments.getArgument("subject", "")
-            val listsStr = request.arguments.getArgument("lists", "")
             
-            if (name.isBlank() || subject.isBlank() || listsStr.isBlank()) {
+            // Handle array parameter directly from request.arguments
+            val listsElement = request.arguments["lists"]
+            
+            if (name.isBlank() || subject.isBlank() || listsElement == null) {
                 return@addTool CallToolResult(
                     content = listOf(TextContent(text = "Error: name, subject, and lists are required"))
                 )
             }
             
             val lists = try {
-                Json.parseToJsonElement(listsStr).jsonArray.map { it.jsonPrimitive.int }
+                when (listsElement) {
+                    is JsonArray -> listsElement.map { it.jsonPrimitive.int }
+                    is JsonPrimitive -> {
+                        // Handle case where it might be passed as a JSON string
+                        Json.parseToJsonElement(listsElement.content).jsonArray.map { it.jsonPrimitive.int }
+                    }
+                    else -> throw IllegalArgumentException("Invalid lists format")
+                }
             } catch (e: Exception) {
                 return@addTool CallToolResult(
                     content = listOf(TextContent(text = "Error: lists must be a valid JSON array of integers"))
@@ -916,10 +966,18 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 else -> ContentType.RICHTEXT
             }
             
-            val tagsStr = request.arguments.getArgument("tags", "")
-            val tags = if (tagsStr.isNotBlank()) {
+            // Handle tags array parameter
+            val tagsElement = request.arguments["tags"]
+            val tags = if (tagsElement != null) {
                 try {
-                    Json.parseToJsonElement(tagsStr).jsonArray.map { it.jsonPrimitive.content }
+                    when (tagsElement) {
+                        is JsonArray -> tagsElement.map { it.jsonPrimitive.content }
+                        is JsonPrimitive -> {
+                            // Handle case where it might be passed as a JSON string
+                            Json.parseToJsonElement(tagsElement.content).jsonArray.map { it.jsonPrimitive.content }
+                        }
+                        else -> null
+                    }
                 } catch (e: Exception) {
                     null
                 }
@@ -927,6 +985,7 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
             
             val templateId = request.arguments.getArgument("template_id", 0L).let { if (it == 0L) null else it.toInt() }
             val sendAt = request.arguments.getArgument("send_at", "").takeIf { it.isNotBlank() }
+                ?.let { convertLocalTimeToUTC(it) }
             
             val createRequest = CreateCampaignRequest(
                 name = name,
@@ -1060,6 +1119,334 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
             )
         }
     }
+    
+    // Template Tools
+    private fun registerGetTemplatesTool(server: Server) {
+        server.addTool(
+            name = "get_templates",
+            description = "Retrieve all templates from Listmonk",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {}
+            )
+        ) { request ->
+            val result = runBlocking {
+                listmonkService.getTemplates()
+            }
+            
+            val responseText = if (result.isSuccess) {
+                Json.encodeToString(result.getOrNull())
+            } else {
+                "Error retrieving templates: ${result.exceptionOrNull()?.message}"
+            }
+            
+            CallToolResult(
+                content = listOf(TextContent(text = responseText))
+            )
+        }
+    }
+    
+    private fun registerGetTemplateTool(server: Server) {
+        server.addTool(
+            name = "get_template",
+            description = "Get details of a specific template by ID",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put("id", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("Template ID"))
+                    })
+                },
+                required = listOf("id")
+            )
+        ) { request ->
+            val id = request.arguments.getArgument("id", 0L).toInt()
+            if (id == 0) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(text = "Error: id parameter is required"))
+                )
+            }
+            
+            val result = runBlocking {
+                listmonkService.getTemplate(id)
+            }
+            
+            val responseText = if (result.isSuccess) {
+                Json.encodeToString(result.getOrNull())
+            } else {
+                "Error retrieving template: ${result.exceptionOrNull()?.message}"
+            }
+            
+            CallToolResult(
+                content = listOf(TextContent(text = responseText))
+            )
+        }
+    }
+    
+    private fun registerGetTemplatePreviewTool(server: Server) {
+        server.addTool(
+            name = "get_template_preview",
+            description = "Get HTML preview of a specific template by ID",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put("id", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("Template ID"))
+                    })
+                },
+                required = listOf("id")
+            )
+        ) { request ->
+            val id = request.arguments.getArgument("id", 0L).toInt()
+            if (id == 0) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(text = "Error: id parameter is required"))
+                )
+            }
+            
+            val result = runBlocking {
+                listmonkService.getTemplatePreview(id)
+            }
+            
+            val responseText = if (result.isSuccess) {
+                result.getOrNull() ?: "No preview available"
+            } else {
+                "Error retrieving template preview: ${result.exceptionOrNull()?.message}"
+            }
+            
+            CallToolResult(
+                content = listOf(TextContent(text = responseText))
+            )
+        }
+    }
+    
+    private fun registerCreateTemplateTool(server: Server) {
+        server.addTool(
+            name = "create_template",
+            description = "Create a new template in Listmonk",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put("name", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("Template name"))
+                    })
+                    put("type", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("enum", JsonArray(listOf(
+                            JsonPrimitive("campaign"),
+                            JsonPrimitive("tx")
+                        )))
+                        put("description", JsonPrimitive("Template type: 'campaign' or 'tx'"))
+                    })
+                    put("body", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("Template HTML body"))
+                    })
+                    put("subject", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("Template subject (for transactional templates)"))
+                    })
+                },
+                required = listOf("name", "type", "body")
+            )
+        ) { request ->
+            val name = request.arguments.getArgument("name", "")
+            val typeStr = request.arguments.getArgument("type", "")
+            val body = request.arguments.getArgument("body", "")
+            val subject = request.arguments.getArgument("subject", "")
+            
+            if (name.isBlank() || typeStr.isBlank() || body.isBlank()) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(text = "Error: name, type, and body parameters are required"))
+                )
+            }
+            
+            val templateType = when (typeStr) {
+                "campaign" -> TemplateType.CAMPAIGN
+                "tx" -> TemplateType.TX
+                else -> {
+                    return@addTool CallToolResult(
+                        content = listOf(TextContent(text = "Error: type must be 'campaign' or 'tx'"))
+                    )
+                }
+            }
+            
+            val createRequest = CreateTemplateRequest(
+                name = name,
+                type = templateType,
+                body = body,
+                subject = subject.takeIf { it.isNotBlank() }
+            )
+            
+            val result = runBlocking {
+                listmonkService.createTemplate(createRequest)
+            }
+            
+            val responseText = if (result.isSuccess) {
+                Json.encodeToString(result.getOrNull())
+            } else {
+                "Error creating template: ${result.exceptionOrNull()?.message}"
+            }
+            
+            CallToolResult(
+                content = listOf(TextContent(text = responseText))
+            )
+        }
+    }
+    
+    private fun registerUpdateTemplateTool(server: Server) {
+        server.addTool(
+            name = "update_template",
+            description = "Update an existing template",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put("id", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("Template ID"))
+                    })
+                    put("name", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("New template name"))
+                    })
+                    put("type", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("enum", JsonArray(listOf(
+                            JsonPrimitive("campaign"),
+                            JsonPrimitive("tx")
+                        )))
+                        put("description", JsonPrimitive("New template type"))
+                    })
+                    put("body", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("New template HTML body"))
+                    })
+                    put("subject", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("New template subject"))
+                    })
+                },
+                required = listOf("id")
+            )
+        ) { request ->
+            val id = request.arguments.getArgument("id", 0L).toInt()
+            val name = request.arguments.getArgument("name", "")
+            val typeStr = request.arguments.getArgument("type", "")
+            val body = request.arguments.getArgument("body", "")
+            val subject = request.arguments.getArgument("subject", "")
+            
+            if (id == 0) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(text = "Error: id parameter is required"))
+                )
+            }
+            
+            val templateType = if (typeStr.isNotBlank()) {
+                when (typeStr) {
+                    "campaign" -> TemplateType.CAMPAIGN
+                    "tx" -> TemplateType.TX
+                    else -> {
+                        return@addTool CallToolResult(
+                            content = listOf(TextContent(text = "Error: type must be 'campaign' or 'tx'"))
+                        )
+                    }
+                }
+            } else null
+            
+            val updateRequest = UpdateTemplateRequest(
+                name = name.takeIf { it.isNotBlank() },
+                type = templateType,
+                body = body.takeIf { it.isNotBlank() },
+                subject = subject.takeIf { it.isNotBlank() }
+            )
+            
+            val result = runBlocking {
+                listmonkService.updateTemplate(id, updateRequest)
+            }
+            
+            val responseText = if (result.isSuccess) {
+                Json.encodeToString(result.getOrNull())
+            } else {
+                "Error updating template: ${result.exceptionOrNull()?.message}"
+            }
+            
+            CallToolResult(
+                content = listOf(TextContent(text = responseText))
+            )
+        }
+    }
+    
+    private fun registerSetDefaultTemplateTool(server: Server) {
+        server.addTool(
+            name = "set_default_template",
+            description = "Set a specific template as the default template",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put("id", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("Template ID to set as default"))
+                    })
+                },
+                required = listOf("id")
+            )
+        ) { request ->
+            val id = request.arguments.getArgument("id", 0L).toInt()
+            if (id == 0) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(text = "Error: id parameter is required"))
+                )
+            }
+            
+            val result = runBlocking {
+                listmonkService.setDefaultTemplate(id)
+            }
+            
+            val responseText = if (result.isSuccess) {
+                "Template $id set as default successfully"
+            } else {
+                "Error setting default template: ${result.exceptionOrNull()?.message}"
+            }
+            
+            CallToolResult(
+                content = listOf(TextContent(text = responseText))
+            )
+        }
+    }
+    
+    private fun registerDeleteTemplateTool(server: Server) {
+        server.addTool(
+            name = "delete_template",
+            description = "Delete a template by ID",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put("id", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("Template ID to delete"))
+                    })
+                },
+                required = listOf("id")
+            )
+        ) { request ->
+            val id = request.arguments.getArgument("id", 0L).toInt()
+            if (id == 0) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(text = "Error: id parameter is required"))
+                )
+            }
+            
+            val result = runBlocking {
+                listmonkService.deleteTemplate(id)
+            }
+            
+            val responseText = if (result.isSuccess) {
+                "Template $id deleted successfully"
+            } else {
+                "Error deleting template: ${result.exceptionOrNull()?.message}"
+            }
+            
+            CallToolResult(
+                content = listOf(TextContent(text = responseText))
+            )
+        }
+    }
 }
 
 // Extension function to get arguments safely
@@ -1073,4 +1460,44 @@ private inline fun <reified T> Map<String, Any>.getArgument(key: String, default
             else -> defaultValue
         }
     } ?: defaultValue
+}
+
+/**
+ * Converts a local time string to UTC ISO format for Listmonk API.
+ * Supports formats: "2024-07-24T19:00:00", "2024-07-24 19:00:00", "19:00"
+ */
+private fun convertLocalTimeToUTC(localTimeStr: String): String {
+    return try {
+        val now = java.time.LocalDateTime.now()
+        val localDateTime = when {
+            // Format: "19:00" or "19:00:00" - assume today
+            localTimeStr.matches(Regex("\\d{1,2}:\\d{2}(:\\d{2})?")) -> {
+                val timeParts = localTimeStr.split(":")
+                val hour = timeParts[0].toInt()
+                val minute = timeParts[1].toInt()
+                val second = if (timeParts.size > 2) timeParts[2].toInt() else 0
+                now.toLocalDate().atTime(hour, minute, second)
+            }
+            // Format: "2024-07-24 19:00:00" or "2024-07-24T19:00:00"
+            else -> {
+                val normalizedStr = localTimeStr.replace(" ", "T")
+                if (normalizedStr.contains("T")) {
+                    java.time.LocalDateTime.parse(normalizedStr)
+                } else {
+                    // Assume it's just a date, add current time
+                    java.time.LocalDate.parse(normalizedStr).atTime(now.toLocalTime())
+                }
+            }
+        }
+        
+        // Convert to UTC
+        val systemZone = java.time.ZoneId.systemDefault()
+        val utcDateTime = localDateTime.atZone(systemZone).withZoneSameInstant(java.time.ZoneOffset.UTC)
+        
+        // Return in ISO format
+        utcDateTime.format(java.time.format.DateTimeFormatter.ISO_INSTANT)
+    } catch (e: Exception) {
+        // If parsing fails, return the original string
+        localTimeStr
+    }
 }
