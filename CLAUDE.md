@@ -44,7 +44,7 @@ src/main/kotlin/io/devexpert/listmonk/
 ├── service/
 │   └── ListmonkService.kt           # HTTP client for Listmonk API
 ├── tools/
-│   └── ListmonkTools.kt             # 15 MCP tools implementation
+│   └── ListmonkTools.kt             # 22 MCP tools implementation
 └── transport/
     └── StdioTransport.kt            # STDIO transport for MCP protocol
 
@@ -55,7 +55,7 @@ gradle/libs.versions.toml             # Version catalog for dependencies
 build.gradle.kts                     # Modern Gradle build with libs catalog
 ```
 
-## Implemented MCP Tools (15 total)
+## Implemented MCP Tools (22 total)
 
 ### Subscriber Management (5 tools)
 - `get_subscribers` - List subscribers with filtering (page, per_page, query, list_id, status)
@@ -74,9 +74,18 @@ build.gradle.kts                     # Modern Gradle build with libs catalog
 ### Campaign Management (5 tools)
 - `get_campaigns` - List campaigns with filtering (page, per_page, query, status)
 - `get_campaign` - Get specific campaign details by ID
-- `create_campaign` - Create new email campaigns with content, lists, scheduling
+- `create_campaign` - Create new email campaigns with content, lists, timezone-aware scheduling
 - `update_campaign_status` - Change campaign status (draft/scheduled/running/paused/finished/cancelled)
 - `delete_campaign` - Remove campaigns by ID
+
+### Template Management (7 tools)
+- `get_templates` - List all email templates
+- `get_template` - Get specific template details by ID
+- `get_template_preview` - Get HTML preview of a template
+- `create_template` - Create new email templates (campaign/transactional)
+- `update_template` - Update existing template properties
+- `set_default_template` - Set a template as the default
+- `delete_template` - Remove templates by ID
 
 ## Configuration
 
@@ -108,7 +117,7 @@ The MCP server integrates with Listmonk's REST API:
 - **Authentication**: Basic Auth with API key (format: `api:your-key`)
 - **Content Types**: JSON request/response bodies
 - **HTTP Client**: Ktor with content negotiation, auth, and logging
-- **API Endpoints**: `/api/subscribers`, `/api/lists`, `/api/campaigns`
+- **API Endpoints**: `/api/subscribers`, `/api/lists`, `/api/campaigns`, `/api/templates`
 - **Error Handling**: Comprehensive error responses with details
 
 ## Key Dependencies
@@ -137,6 +146,8 @@ ch.qos.logback:logback-classic:1.5.18
 - **Logging**: Structured logging with SLF4J + Logback, configurable levels
 - **Testing**: Framework ready (JUnit Jupiter + Ktor mock client)
 - **Building**: Modern Gradle with version catalogs, shadow plugin for fat JARs
+- **Timezone Support**: Automatic conversion from local time to UTC for campaign scheduling
+- **Array Parameters**: Robust handling of array parameters (lists, tags) in multiple formats
 
 ## Usage with Claude Desktop
 
@@ -150,7 +161,7 @@ Add to Claude Desktop configuration:
       "args": ["-jar", "/path/to/listmonk-mcp-all.jar"],
       "env": {
         "LISTMONK_BASE_URL": "http://localhost:9000",
-        "LISTMONK_USERNAME": "your-username",
+        "LISTMONK_USERNAME": "api",
         "LISTMONK_API_KEY": "your-api-key"
       }
     }

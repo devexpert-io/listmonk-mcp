@@ -23,9 +23,18 @@ This MCP server provides comprehensive tools for managing Listmonk through AI as
 ### Campaign Management
 - **get_campaigns** - Retrieve campaigns with filtering
 - **get_campaign** - Get details of a specific campaign
-- **create_campaign** - Create new email campaigns
+- **create_campaign** - Create new email campaigns with timezone-aware scheduling
 - **update_campaign_status** - Change campaign status (draft, scheduled, running, etc.)
 - **delete_campaign** - Remove campaigns
+
+### Template Management
+- **get_templates** - Retrieve all email templates
+- **get_template** - Get details of a specific template
+- **get_template_preview** - Get HTML preview of a template
+- **create_template** - Create new email templates
+- **update_template** - Modify existing templates
+- **set_default_template** - Set a template as default
+- **delete_template** - Remove templates
 
 ### Guided Workflows
 The server includes helpful prompts for common workflows:
@@ -42,6 +51,7 @@ The server is configured through environment variables:
 - `LISTMONK_API_KEY` - Your Listmonk API key
 
 ### Optional Variables
+- `LISTMONK_USERNAME` - Basic Auth username (default: "api")
 - `LISTMONK_TIMEOUT` - Request timeout in milliseconds (default: 30000)
 - `LISTMONK_RETRY_COUNT` - Number of retries for failed requests (default: 3)
 
@@ -63,6 +73,7 @@ Create a `.env` file or set environment variables:
 ```bash
 export LISTMONK_BASE_URL="http://localhost:9000"
 export LISTMONK_API_KEY="your-api-key-here"
+export LISTMONK_USERNAME="api"  # Optional, defaults to "api"
 export LISTMONK_TIMEOUT="30000"
 export LISTMONK_RETRY_COUNT="3"
 ```
@@ -85,6 +96,7 @@ export LISTMONK_RETRY_COUNT="3"
 docker build -t listmonk-mcp .
 docker run -e LISTMONK_BASE_URL="http://localhost:9000" \
            -e LISTMONK_API_KEY="your-api-key" \
+           -e LISTMONK_USERNAME="api" \
            listmonk-mcp
 ```
 
@@ -97,10 +109,11 @@ Add the server to your Claude Desktop configuration:
   "mcpServers": {
     "listmonk": {
       "command": "java",
-      "args": ["-jar", "/path/to/listmonk-mcp/build/libs/listmonk-mcp-1.0-SNAPSHOT.jar"],
+      "args": ["-jar", "/path/to/listmonk-mcp-all.jar"],
       "env": {
         "LISTMONK_BASE_URL": "http://localhost:9000",
-        "LISTMONK_API_KEY": "your-api-key-here"
+        "LISTMONK_API_KEY": "your-api-key-here",
+        "LISTMONK_USERNAME": "api"
       }
     }
   }
@@ -128,6 +141,7 @@ Use the create_campaign tool to create a newsletter:
 - Lists: [1]
 - Content Type: richtext
 - Body: Your campaign content here
+- Send At: "19:00" or "2024-07-24T19:00:00" (uses local timezone)
 ```
 
 ### Managing Lists
@@ -147,6 +161,20 @@ This MCP server is compatible with Listmonk v2.0+ and uses the official Listmonk
 - `/api/subscribers` - Subscriber management
 - `/api/lists` - Mailing list operations  
 - `/api/campaigns` - Campaign management
+- `/api/templates` - Template management
+
+## Key Features
+
+### Timezone-Aware Scheduling
+When creating campaigns with `send_at`, you can use local time formats:
+- `"19:00"` - Today at 7 PM in your timezone
+- `"2024-07-24T19:00:00"` - Specific date and time in your timezone
+- `"2024-07-24 19:00:00"` - Alternative format with space
+
+The server automatically converts to UTC for Listmonk.
+
+### Robust Array Parameter Handling
+All array parameters (lists, tags) support both direct arrays and JSON string formats for maximum compatibility with different MCP clients.
 
 ## Logging
 
