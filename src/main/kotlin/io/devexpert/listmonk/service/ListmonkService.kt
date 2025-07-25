@@ -227,11 +227,16 @@ class ListmonkService(private val config: ListmonkConfig) {
         // Check if it's an error response or success response
         if (rawJson.contains("\"message\"")) {
             // Error response format: {"message": "error text"}
-            val errorMessage = Json.parseToJsonElement(rawJson).jsonObject["message"]?.jsonPrimitive?.content
+            val json = Json { ignoreUnknownKeys = true }
+            val errorMessage = json.parseToJsonElement(rawJson).jsonObject["message"]?.jsonPrimitive?.content
             throw Exception(errorMessage ?: "Unknown error from API")
         } else {
             // Success response - should be wrapped in ApiResponse format
-            Json.decodeFromString<ApiResponse<Campaign>>(rawJson)
+            val json = Json { 
+                ignoreUnknownKeys = true
+                coerceInputValues = true
+            }
+            json.decodeFromString<ApiResponse<Campaign>>(rawJson)
         }
     }
     
