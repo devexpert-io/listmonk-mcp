@@ -12,6 +12,7 @@ import io.ktor.client.plugins.auth.providers.*
 import io.ktor.client.plugins.contentnegotiation.*
 import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
+import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
 import kotlinx.serialization.json.Json
@@ -21,6 +22,27 @@ import kotlinx.serialization.json.jsonPrimitive
 private val logger = KotlinLogging.logger {}
 
 class ListmonkService(private val config: ListmonkConfig) {
+    
+    /**
+     * Generic function to handle Listmonk API responses that can return either success data 
+     * or error messages in {"message": "error text"} format
+     */
+    private suspend inline fun <T> parseResponseOrThrowMessage(
+        response: HttpResponse,
+        parser: (String) -> T
+    ): T {
+        val rawJson = response.body<String>()
+        logger.info { "Raw API response: $rawJson" }
+        
+        // Check if it's an error response
+        if (rawJson.contains("\"message\"")) {
+            val json = Json { ignoreUnknownKeys = true }
+            val errorMessage = json.parseToJsonElement(rawJson).jsonObject["message"]?.jsonPrimitive?.content
+            throw Exception(errorMessage ?: "Unknown error from API")
+        } else {
+            return parser(rawJson)
+        }
+    }
     
     private val httpClient = HttpClient(CIO) {
         install(ContentNegotiation) {
@@ -116,17 +138,7 @@ class ListmonkService(private val config: ListmonkConfig) {
             setBody(request)
         }
         
-        val rawJson = response.body<String>()
-        logger.info { "Raw API response: $rawJson" }
-        
-        // Check if it's an error response or success response
-        if (rawJson.contains("\"message\"")) {
-            // Error response format: {"message": "error text"}
-            val json = Json { ignoreUnknownKeys = true }
-            val errorMessage = json.parseToJsonElement(rawJson).jsonObject["message"]?.jsonPrimitive?.content
-            throw Exception(errorMessage ?: "Unknown error from API")
-        } else {
-            // Success response - should be wrapped in ApiResponse format
+        parseResponseOrThrowMessage(response) { rawJson ->
             val json = Json { 
                 ignoreUnknownKeys = true
                 coerceInputValues = true
@@ -140,16 +152,7 @@ class ListmonkService(private val config: ListmonkConfig) {
         
         val response = httpClient.delete("${config.normalizedBaseUrl}/api/subscribers/$id")
         
-        val rawJson = response.body<String>()
-        logger.info { "Raw API response: $rawJson" }
-        
-        // Check if it's an error response or success response
-        if (rawJson.contains("\"message\"")) {
-            // Error response format: {"message": "error text"}
-            val json = Json { ignoreUnknownKeys = true }
-            val errorMessage = json.parseToJsonElement(rawJson).jsonObject["message"]?.jsonPrimitive?.content
-            throw Exception(errorMessage ?: "Unknown error from API")
-        } else {
+        parseResponseOrThrowMessage(response) { _ ->
             // Success response for delete is typically {"data": true}
             ApiResponse(data = Unit)
         }
@@ -198,14 +201,23 @@ class ListmonkService(private val config: ListmonkConfig) {
             setBody(request)
         }
         
-        response.body<ApiResponse<MailingList>>()
+        parseResponseOrThrowMessage(response) { rawJson ->
+            val json = Json { 
+                ignoreUnknownKeys = true
+                coerceInputValues = true
+            }
+            json.decodeFromString<ApiResponse<MailingList>>(rawJson)
+        }
     }
     
     suspend fun deleteList(id: Int): Result<ApiResponse<Unit>> = runCatching {
         logger.info { "Deleting list: id=$id" }
         
         val response = httpClient.delete("${config.normalizedBaseUrl}/api/lists/$id")
-        response.body<ApiResponse<Unit>>()
+        
+        parseResponseOrThrowMessage(response) { _ ->
+            ApiResponse(data = Unit)
+        }
     }
     
     // Campaign operations
@@ -251,16 +263,7 @@ class ListmonkService(private val config: ListmonkConfig) {
             setBody(UpdateCampaignStatusRequest(status))
         }
         
-        val rawJson = response.body<String>()
-        
-        // Check if it's an error response or success response
-        if (rawJson.contains("\"message\"")) {
-            // Error response format: {"message": "error text"}
-            val json = Json { ignoreUnknownKeys = true }
-            val errorMessage = json.parseToJsonElement(rawJson).jsonObject["message"]?.jsonPrimitive?.content
-            throw Exception(errorMessage ?: "Unknown error from API")
-        } else {
-            // Success response - should be wrapped in ApiResponse format
+        parseResponseOrThrowMessage(response) { rawJson ->
             val json = Json { 
                 ignoreUnknownKeys = true
                 coerceInputValues = true
@@ -273,7 +276,10 @@ class ListmonkService(private val config: ListmonkConfig) {
         logger.info { "Deleting campaign: id=$id" }
         
         val response = httpClient.delete("${config.normalizedBaseUrl}/api/campaigns/$id")
-        response.body<ApiResponse<Unit>>()
+        
+        parseResponseOrThrowMessage(response) { _ ->
+            ApiResponse(data = Unit)
+        }
     }
     
     // Template operations
@@ -315,21 +321,37 @@ class ListmonkService(private val config: ListmonkConfig) {
             setBody(request)
         }
         
-        response.body<ApiResponse<Template>>()
+        parseResponseOrThrowMessage(response) { rawJson ->
+            val json = Json { 
+                ignoreUnknownKeys = true
+                coerceInputValues = true
+            }
+            json.decodeFromString<ApiResponse<Template>>(rawJson)
+        }
     }
     
     suspend fun setDefaultTemplate(id: Int): Result<ApiResponse<Template>> = runCatching {
         logger.info { "Setting default template: id=$id" }
         
         val response = httpClient.put("${config.normalizedBaseUrl}/api/templates/$id/default")
-        response.body<ApiResponse<Template>>()
+        
+        parseResponseOrThrowMessage(response) { rawJson ->
+            val json = Json { 
+                ignoreUnknownKeys = true
+                coerceInputValues = true
+            }
+            json.decodeFromString<ApiResponse<Template>>(rawJson)
+        }
     }
     
     suspend fun deleteTemplate(id: Int): Result<ApiResponse<Unit>> = runCatching {
         logger.info { "Deleting template: id=$id" }
         
         val response = httpClient.delete("${config.normalizedBaseUrl}/api/templates/$id")
-        response.body<ApiResponse<Unit>>()
+        
+        parseResponseOrThrowMessage(response) { _ ->
+            ApiResponse(data = Unit)
+        }
     }
     
     fun close() {
