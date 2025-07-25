@@ -116,14 +116,43 @@ class ListmonkService(private val config: ListmonkConfig) {
             setBody(request)
         }
         
-        response.body<ApiResponse<Subscriber>>()
+        val rawJson = response.body<String>()
+        logger.info { "Raw API response: $rawJson" }
+        
+        // Check if it's an error response or success response
+        if (rawJson.contains("\"message\"")) {
+            // Error response format: {"message": "error text"}
+            val json = Json { ignoreUnknownKeys = true }
+            val errorMessage = json.parseToJsonElement(rawJson).jsonObject["message"]?.jsonPrimitive?.content
+            throw Exception(errorMessage ?: "Unknown error from API")
+        } else {
+            // Success response - should be wrapped in ApiResponse format
+            val json = Json { 
+                ignoreUnknownKeys = true
+                coerceInputValues = true
+            }
+            json.decodeFromString<ApiResponse<Subscriber>>(rawJson)
+        }
     }
     
     suspend fun deleteSubscriber(id: Int): Result<ApiResponse<Unit>> = runCatching {
         logger.info { "Deleting subscriber: id=$id" }
         
         val response = httpClient.delete("${config.normalizedBaseUrl}/api/subscribers/$id")
-        response.body<ApiResponse<Unit>>()
+        
+        val rawJson = response.body<String>()
+        logger.info { "Raw API response: $rawJson" }
+        
+        // Check if it's an error response or success response
+        if (rawJson.contains("\"message\"")) {
+            // Error response format: {"message": "error text"}
+            val json = Json { ignoreUnknownKeys = true }
+            val errorMessage = json.parseToJsonElement(rawJson).jsonObject["message"]?.jsonPrimitive?.content
+            throw Exception(errorMessage ?: "Unknown error from API")
+        } else {
+            // Success response for delete is typically {"data": true}
+            ApiResponse(data = Unit)
+        }
     }
     
     // List operations
