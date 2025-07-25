@@ -227,7 +227,7 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                         }
                         else -> null
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
             } else null
@@ -328,7 +328,7 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                         }
                         else -> null
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
             } else null
@@ -428,14 +428,13 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
             val query = request.arguments.getArgument("query", "").takeIf { it.isNotBlank() }
             val tag = request.arguments.getArgument("tag", "").takeIf { it.isNotBlank() }
             
-            
             val result = runBlocking {
                 listmonkService.getLists(page, perPage, query, tag)
             }
             
             val responseText = if (result.isSuccess) {
                 val lists = result.getOrThrow()
-                Json.encodeToString(ApiResponse.serializer(kotlinx.serialization.serializer()), lists)
+                Json.encodeToString(lists)
             } else {
                 "Error getting lists: ${result.exceptionOrNull()?.message}"
             }
@@ -466,7 +465,6 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                     content = listOf(TextContent(text = "Error: id parameter is required"))
                 )
             }
-            
             
             val result = runBlocking {
                 listmonkService.getList(id)
@@ -564,7 +562,7 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                         }
                         else -> null
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
             } else null
@@ -578,7 +576,6 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 tags = tags,
                 description = description
             )
-            
             
             val result = runBlocking {
                 listmonkService.createList(createRequest)
@@ -682,7 +679,7 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                         }
                         else -> null
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
             } else null
@@ -696,7 +693,6 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 tags = tags,
                 description = description
             )
-            
             
             val result = runBlocking {
                 listmonkService.updateList(id, updateRequest)
@@ -735,7 +731,6 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                     content = listOf(TextContent(text = "Error: id parameter is required"))
                 )
             }
-            
             
             val result = runBlocking {
                 listmonkService.deleteList(id)
@@ -805,14 +800,13 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 else -> null
             }
             
-            
             val result = runBlocking {
                 listmonkService.getCampaigns(page, perPage, query, status)
             }
             
             val responseText = if (result.isSuccess) {
                 val campaigns = result.getOrThrow()
-                Json.encodeToString(ApiResponse.serializer(kotlinx.serialization.serializer()), campaigns)
+                Json.encodeToString(campaigns)
             } else {
                 "Error getting campaigns: ${result.exceptionOrNull()?.message}"
             }
@@ -843,7 +837,6 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                     content = listOf(TextContent(text = "Error: id parameter is required"))
                 )
             }
-            
             
             val result = runBlocking {
                 listmonkService.getCampaign(id)
@@ -943,7 +936,7 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                     }
                     else -> throw IllegalArgumentException("Invalid lists format")
                 }
-            } catch (e: Exception) {
+            } catch (_: Exception) {
                 return@addTool CallToolResult(
                     content = listOf(TextContent(text = "Error: lists must be a valid JSON array of integers"))
                 )
@@ -978,7 +971,7 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                         }
                         else -> null
                     }
-                } catch (e: Exception) {
+                } catch (_: Exception) {
                     null
                 }
             } else null
@@ -998,7 +991,6 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 templateId = templateId,
                 sendAt = sendAt
             )
-            
             
             val result = runBlocking {
                 listmonkService.createCampaign(createRequest)
@@ -1064,7 +1056,6 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 )
             }
             
-            
             val result = runBlocking {
                 listmonkService.updateCampaignStatus(id, status)
             }
@@ -1102,7 +1093,6 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                     content = listOf(TextContent(text = "Error: id parameter is required"))
                 )
             }
-            
             
             val result = runBlocking {
                 listmonkService.deleteCampaign(id)
@@ -1496,7 +1486,7 @@ private fun convertLocalTimeToUTC(localTimeStr: String): String {
         
         // Return in ISO format
         utcDateTime.format(java.time.format.DateTimeFormatter.ISO_INSTANT)
-    } catch (e: Exception) {
+    } catch (_: Exception) {
         // If parsing fails, return the original string
         localTimeStr
     }
