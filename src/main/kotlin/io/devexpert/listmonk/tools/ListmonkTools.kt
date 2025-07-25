@@ -1070,8 +1070,8 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
             }
             
             val responseText = if (result.isSuccess) {
-                val campaign = result.getOrThrow()
-                Json.encodeToString(ApiResponse.serializer(Campaign.serializer()), campaign)
+                val apiResponse = result.getOrThrow()
+                Json.encodeToString(ApiResponse.serializer(Campaign.serializer()), apiResponse)
             } else {
                 "Error updating campaign status: ${result.exceptionOrNull()?.message}"
             }

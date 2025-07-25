@@ -14,8 +14,9 @@ import io.ktor.client.plugins.logging.*
 import io.ktor.client.request.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
-import kotlinx.coroutines.delay
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 
 private val logger = KotlinLogging.logger {}
 
@@ -221,7 +222,17 @@ class ListmonkService(private val config: ListmonkConfig) {
             setBody(UpdateCampaignStatusRequest(status))
         }
         
-        response.body<ApiResponse<Campaign>>()
+        val rawJson = response.body<String>()
+        
+        // Check if it's an error response or success response
+        if (rawJson.contains("\"message\"")) {
+            // Error response format: {"message": "error text"}
+            val errorMessage = Json.parseToJsonElement(rawJson).jsonObject["message"]?.jsonPrimitive?.content
+            throw Exception(errorMessage ?: "Unknown error from API")
+        } else {
+            // Success response - should be wrapped in ApiResponse format
+            Json.decodeFromString<ApiResponse<Campaign>>(rawJson)
+        }
     }
     
     suspend fun deleteCampaign(id: Int): Result<ApiResponse<Unit>> = runCatching {
