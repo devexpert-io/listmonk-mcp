@@ -32,7 +32,6 @@
     <logger name="io.ktor.client" level="INFO" />
     
     <!-- Root logger -->
-    <root level="INFO">
-        <appender-ref ref="FILE" />
+    <root level="OFF">
     </root>
 </configuration>
