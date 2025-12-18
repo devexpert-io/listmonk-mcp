@@ -215,6 +215,7 @@ data class CreateCampaignRequest(
     val name: String,
     val subject: String,
     val lists: List<Int>,
+    val status: CampaignStatus? = null,
     val body: String? = null,
     @SerialName("from_email")
     val fromEmail: String? = null,
@@ -230,8 +231,21 @@ data class CreateCampaignRequest(
 )
 
 @Serializable
-data class UpdateCampaignStatusRequest(
-    val status: CampaignStatus
+data class UpdateCampaignRequest(
+    val name: String? = null,
+    val subject: String? = null,
+    val lists: List<Int>? = null,
+    val status: CampaignStatus? = null,
+    val body: String? = null,
+    @SerialName("from_email")
+    val fromEmail: String? = null,
+    @SerialName("content_type")
+    val contentType: ContentType? = null,
+    val tags: List<String>? = null,
+    @SerialName("template_id")
+    val templateId: Int? = null,
+    @SerialName("send_at")
+    val sendAt: String? = null
 )
 
 @Serializable
@@ -268,9 +282,99 @@ data class CreateTemplateRequest(
 )
 
 @Serializable
+
 data class UpdateTemplateRequest(
+
     val name: String? = null,
+
     val type: TemplateType? = null,
+
     val body: String? = null,
+
     val subject: String? = null
+
+)
+
+
+
+@Serializable
+
+data class TransactionalMessageRequest(
+
+    @SerialName("subscriber_email")
+
+    val subscriberEmail: String? = null,
+
+    @SerialName("subscriber_id")
+
+    val subscriberId: Int? = null,
+
+    @SerialName("template_id")
+
+    val templateId: Int? = null,
+
+    @SerialName("template_name")
+
+    val templateName: String? = null,
+
+    val data: JsonObject? = null,
+
+    val headers: List<Map<String, String>>? = null,
+
+    val messenger: String = "email",
+
+    @SerialName("content_type")
+
+    val contentType: ContentType? = null
+
+)
+
+
+
+@Serializable
+
+data class Media(
+
+    val id: Int? = null,
+
+    val uuid: String? = null,
+
+    val filename: String,
+
+    val thumb: String? = null,
+
+    val type: String? = null,
+
+    val size: Long? = null,
+
+    @SerialName("created_at")
+
+    val createdAt: String? = null
+
+)
+
+
+
+@Serializable
+
+data class DashboardStats(
+
+    val subscribers: Int,
+
+    val lists: Int,
+
+    val campaigns: Int,
+
+    val messages: Int
+
+)
+
+
+
+@Serializable
+
+data class HealthResponse(
+
+    val status: String
+
 )

@@ -15,7 +15,9 @@ import io.ktor.client.request.*
 import io.ktor.client.statement.*
 import io.ktor.http.*
 import io.ktor.serialization.kotlinx.json.*
+import io.ktor.client.request.forms.*
 import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 
@@ -255,12 +257,29 @@ class ListmonkService(private val config: ListmonkConfig) {
         
         response.body<ApiResponse<Campaign>>()
     }
-    
+
+    suspend fun updateCampaign(id: Int, request: UpdateCampaignRequest): Result<ApiResponse<Campaign>> = runCatching {
+        logger.info { "Updating campaign: id=$id" }
+        
+        val response = httpClient.put("${config.normalizedBaseUrl}/api/campaigns/$id") {
+            setBody(request)
+        }
+        
+        parseResponseOrThrowMessage(response) { rawJson ->
+            val json = Json { 
+                ignoreUnknownKeys = true
+                coerceInputValues = true
+            }
+            json.decodeFromString<ApiResponse<Campaign>>(rawJson)
+        }
+    }
+
     suspend fun updateCampaignStatus(id: Int, status: CampaignStatus): Result<ApiResponse<Campaign>> = runCatching {
         logger.info { "Updating campaign status: id=$id, status=$status" }
         
         val response = httpClient.put("${config.normalizedBaseUrl}/api/campaigns/$id/status") {
-            setBody(UpdateCampaignStatusRequest(status))
+            // Manually creating the JSON to match Listmonk's expected structure
+            setBody(Json.parseToJsonElement("{\"status\": \"${status.name.lowercase()}\"}"))
         }
         
         parseResponseOrThrowMessage(response) { rawJson ->
@@ -353,7 +372,67 @@ class ListmonkService(private val config: ListmonkConfig) {
             ApiResponse(data = Unit)
         }
     }
-    
+
+    // Miscellaneous operations
+    suspend fun getHealth(): Result<ApiResponse<HealthResponse>> = runCatching {
+        logger.info { "Getting health status" }
+        val response = httpClient.get("${config.normalizedBaseUrl}/api/health")
+        response.body<ApiResponse<HealthResponse>>()
+    }
+
+    suspend fun getDashboardStats(): Result<ApiResponse<DashboardStats>> = runCatching {
+        logger.info { "Getting dashboard stats" }
+        val response = httpClient.get("${config.normalizedBaseUrl}/api/dashboard/counts")
+        response.body<ApiResponse<DashboardStats>>()
+    }
+
+    // Transactional operations
+    suspend fun sendTransactionalEmail(request: TransactionalMessageRequest): Result<ApiResponse<Boolean>> = runCatching {
+        logger.info { "Sending transactional email to ${request.subscriberEmail ?: request.subscriberId}" }
+        val response = httpClient.post("${config.normalizedBaseUrl}/api/tx") {
+            setBody(request)
+        }
+        
+        parseResponseOrThrowMessage(response) { _ ->
+            ApiResponse(data = true)
+        }
+    }
+
+    // Media operations
+    suspend fun getMedia(page: Int = 1, perPage: Int = 20): Result<ApiResponse<PaginatedResponse<Media>>> = runCatching {
+        logger.info { "Getting media: page=$page, perPage=$perPage" }
+        val response = httpClient.get("${config.normalizedBaseUrl}/api/media") {
+            parameter("page", page)
+            parameter("per_page", perPage)
+        }
+        response.body<ApiResponse<PaginatedResponse<Media>>>()
+    }
+
+    suspend fun uploadMedia(fileBytes: ByteArray, fileName: String, contentType: String): Result<ApiResponse<Media>> = runCatching {
+        logger.info { "Uploading media: $fileName" }
+        // Note: Listmonk expects a multipart form upload for media
+        val response = httpClient.post("${config.normalizedBaseUrl}/api/media") {
+            setBody(io.ktor.client.request.forms.MultiPartFormDataContent(
+                io.ktor.client.request.forms.formData {
+                    append("upload", fileBytes, Headers.build {
+                        append(HttpHeaders.ContentType, contentType)
+                        append(HttpHeaders.ContentDisposition, "filename=\"$fileName\"")
+                    })
+                }
+            ))
+        }
+        response.body<ApiResponse<Media>>()
+    }
+
+    // Analytics operations
+    suspend fun getCampaignAnalytics(id: Int, type: String): Result<ApiResponse<JsonElement>> = runCatching {
+        logger.info { "Getting campaign analytics: id=$id, type=$type" }
+        val response = httpClient.get("${config.normalizedBaseUrl}/api/campaigns/analytics/$type") {
+            parameter("campaign_id", id)
+        }
+        response.body<ApiResponse<JsonElement>>()
+    }
+
     fun close() {
         httpClient.close()
     }

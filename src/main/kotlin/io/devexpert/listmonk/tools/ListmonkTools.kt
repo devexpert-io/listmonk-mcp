@@ -35,6 +35,7 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
         registerGetCampaignsTool(server)
         registerGetCampaignTool(server)
         registerCreateCampaignTool(server)
+        registerUpdateCampaignTool(server)
         registerUpdateCampaignStatusTool(server)
         registerDeleteCampaignTool(server)
         
@@ -47,7 +48,20 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
         registerSetDefaultTemplateTool(server)
         registerDeleteTemplateTool(server)
         
-        logger.info("Listmonk tools registered successfully: 22 tools available")
+        // Miscellaneous tools
+        registerGetHealthTool(server)
+        registerGetDashboardStatsTool(server)
+        
+        // Transactional tools
+        registerSendTransactionalEmailTool(server)
+        
+        // Media tools
+        registerGetMediaTool(server)
+        
+        // Analytics tools
+        registerGetCampaignAnalyticsTool(server)
+        
+        logger.info("Listmonk tools registered successfully")
     }
     
     // Subscriber Tools
@@ -876,6 +890,18 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                         })
                         put("description", JsonPrimitive("List of list IDs to send to"))
                     })
+                    put("status", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("enum", JsonArray(listOf(
+                            JsonPrimitive("draft"),
+                            JsonPrimitive("scheduled"),
+                            JsonPrimitive("running"),
+                            JsonPrimitive("paused"),
+                            JsonPrimitive("finished"),
+                            JsonPrimitive("cancelled")
+                        )))
+                        put("description", JsonPrimitive("Initial campaign status (default: draft)"))
+                    })
                     put("body", buildJsonObject {
                         put("type", JsonPrimitive("string"))
                         put("description", JsonPrimitive("Campaign body/content"))
@@ -948,6 +974,17 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 )
             }
             
+            val statusStr = request.arguments.getArgument("status", "")
+            val status = when (statusStr) {
+                "draft" -> CampaignStatus.DRAFT
+                "scheduled" -> CampaignStatus.SCHEDULED
+                "running" -> CampaignStatus.RUNNING
+                "paused" -> CampaignStatus.PAUSED
+                "finished" -> CampaignStatus.FINISHED
+                "cancelled" -> CampaignStatus.CANCELLED
+                else -> null
+            }
+            
             val body = request.arguments.getArgument("body", "").takeIf { it.isNotBlank() }
             val fromEmail = request.arguments.getArgument("from_email", "").takeIf { it.isNotBlank() }
             val contentTypeStr = request.arguments.getArgument("content_type", "richtext")
@@ -984,6 +1021,7 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 name = name,
                 subject = subject,
                 lists = lists,
+                status = status,
                 body = body,
                 fromEmail = fromEmail,
                 contentType = contentType,
@@ -993,7 +1031,19 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
             )
             
             val result = runBlocking {
-                listmonkService.createCampaign(createRequest)
+                val createResult = listmonkService.createCampaign(createRequest)
+                if (createResult.isSuccess && status != null && status != CampaignStatus.DRAFT) {
+                    val newCampaign = createResult.getOrThrow()
+                    val campaignId = newCampaign.data.id
+                    if (campaignId != null) {
+                        // Attempt to update status if provided and not draft
+                        listmonkService.updateCampaignStatus(campaignId, status)
+                    } else {
+                        createResult
+                    }
+                } else {
+                    createResult
+                }
             }
             
             val responseText = if (result.isSuccess) {
@@ -1009,10 +1059,177 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
         }
     }
     
+    private fun registerUpdateCampaignTool(server: Server) {
+        server.addTool(
+            name = "update_campaign",
+            description = "Update an existing campaign's details",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put("id", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("Campaign ID"))
+                    })
+                    put("name", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("New campaign name"))
+                    })
+                    put("subject", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("New email subject"))
+                    })
+                    put("lists", buildJsonObject {
+                        put("type", JsonPrimitive("array"))
+                        put("items", buildJsonObject {
+                            put("type", JsonPrimitive("integer"))
+                        })
+                        put("description", JsonPrimitive("New list of list IDs"))
+                    })
+                    put("status", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("enum", JsonArray(listOf(
+                            JsonPrimitive("draft"),
+                            JsonPrimitive("scheduled"),
+                            JsonPrimitive("running"),
+                            JsonPrimitive("paused"),
+                            JsonPrimitive("finished"),
+                            JsonPrimitive("cancelled")
+                        )))
+                        put("description", JsonPrimitive("New campaign status"))
+                    })
+                    put("body", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("New campaign body content"))
+                    })
+                    put("from_email", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("format", JsonPrimitive("email"))
+                        put("description", JsonPrimitive("New from email address"))
+                    })
+                    put("content_type", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("enum", JsonArray(listOf(
+                            JsonPrimitive("richtext"),
+                            JsonPrimitive("html"),
+                            JsonPrimitive("markdown"),
+                            JsonPrimitive("plain")
+                        )))
+                        put("description", JsonPrimitive("New content type"))
+                    })
+                    put("tags", buildJsonObject {
+                        put("type", JsonPrimitive("array"))
+                        put("items", buildJsonObject {
+                            put("type", JsonPrimitive("string"))
+                        })
+                        put("description", JsonPrimitive("New campaign tags"))
+                    })
+                    put("template_id", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("New template ID"))
+                    })
+                    put("send_at", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("format", JsonPrimitive("date-time"))
+                        put("description", JsonPrimitive("New schedule time (UTC ISO format or local time like '19:00')"))
+                    })
+                },
+                required = listOf("id")
+            )
+        ) { request ->
+            val id = request.arguments.getArgument("id", 0L).toInt()
+            if (id == 0) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(text = "Error: id parameter is required"))
+                )
+            }
+            
+            val name = request.arguments.getArgument("name", "").takeIf { it.isNotBlank() }
+            val subject = request.arguments.getArgument("subject", "").takeIf { it.isNotBlank() }
+            
+            val listsElement = request.arguments["lists"]
+            val lists = try {
+                when (listsElement) {
+                    is JsonArray -> listsElement.map { it.jsonPrimitive.int }
+                    is JsonPrimitive -> Json.parseToJsonElement(listsElement.content).jsonArray.map { it.jsonPrimitive.int }
+                    else -> null
+                }
+            } catch (_: Exception) { null }
+            
+            val statusStr = request.arguments.getArgument("status", "")
+            val status = when (statusStr) {
+                "draft" -> CampaignStatus.DRAFT
+                "scheduled" -> CampaignStatus.SCHEDULED
+                "running" -> CampaignStatus.RUNNING
+                "paused" -> CampaignStatus.PAUSED
+                "finished" -> CampaignStatus.FINISHED
+                "cancelled" -> CampaignStatus.CANCELLED
+                else -> null
+            }
+            
+            val body = request.arguments.getArgument("body", "").takeIf { it.isNotBlank() }
+            val fromEmail = request.arguments.getArgument("from_email", "").takeIf { it.isNotBlank() }
+            val contentTypeStr = request.arguments.getArgument("content_type", "")
+            val contentType = when (contentTypeStr) {
+                "richtext" -> ContentType.RICHTEXT
+                "html" -> ContentType.HTML
+                "markdown" -> ContentType.MARKDOWN
+                "plain" -> ContentType.PLAIN
+                else -> null
+            }
+            
+            val tagsElement = request.arguments["tags"]
+            val tags = try {
+                when (tagsElement) {
+                    is JsonArray -> tagsElement.map { it.jsonPrimitive.content }
+                    is JsonPrimitive -> Json.parseToJsonElement(tagsElement.content).jsonArray.map { it.jsonPrimitive.content }
+                    else -> null
+                }
+            } catch (_: Exception) { null }
+            
+            val templateId = request.arguments.getArgument("template_id", 0L).let { if (it == 0L) null else it.toInt() }
+            val sendAt = request.arguments.getArgument("send_at", "").takeIf { it.isNotBlank() }
+                ?.let { convertLocalTimeToUTC(it) }
+            
+            val updateRequest = UpdateCampaignRequest(
+                name = name,
+                subject = subject,
+                lists = lists,
+                status = status,
+                body = body,
+                fromEmail = fromEmail,
+                contentType = contentType,
+                tags = tags,
+                templateId = templateId,
+                sendAt = sendAt
+            )
+            
+            val result = runBlocking {
+                val updateResult = listmonkService.updateCampaign(id, updateRequest)
+                if (updateResult.isSuccess && status != null) {
+                    // If status was provided, also call updateCampaignStatus as Listmonk 
+                    // requires a specific endpoint for state transitions
+                    listmonkService.updateCampaignStatus(id, status)
+                } else {
+                    updateResult
+                }
+            }
+            
+            val responseText = if (result.isSuccess) {
+                val campaign = result.getOrThrow()
+                Json.encodeToString(ApiResponse.serializer(Campaign.serializer()), campaign)
+            } else {
+                "Error updating campaign: ${result.exceptionOrNull()?.message}"
+            }
+            
+            CallToolResult(
+                content = listOf(TextContent(text = responseText))
+            )
+        }
+    }
+
     private fun registerUpdateCampaignStatusTool(server: Server) {
         server.addTool(
             name = "update_campaign_status",
-            description = "Update the status of an existing campaign",
+            description = "Update the status of an existing campaign (draft, scheduled, running, paused, finished, cancelled)",
             inputSchema = Tool.Input(
                 properties = buildJsonObject {
                     put("id", buildJsonObject {
@@ -1061,8 +1278,8 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
             }
             
             val responseText = if (result.isSuccess) {
-                val apiResponse = result.getOrThrow()
-                Json.encodeToString(ApiResponse.serializer(Campaign.serializer()), apiResponse)
+                val campaign = result.getOrThrow()
+                Json.encodeToString(ApiResponse.serializer(Campaign.serializer()), campaign)
             } else {
                 "Error updating campaign status: ${result.exceptionOrNull()?.message}"
             }
@@ -1430,6 +1647,199 @@ class ListmonkTools(private val listmonkService: ListmonkService) {
                 "Template $id deleted successfully"
             } else {
                 "Error deleting template: ${result.exceptionOrNull()?.message}"
+            }
+            
+            CallToolResult(
+                content = listOf(TextContent(text = responseText))
+            )
+        }
+    }
+
+    // Miscellaneous Tools
+    private fun registerGetHealthTool(server: Server) {
+        server.addTool(
+            name = "get_health",
+            description = "Check the health of the Listmonk server",
+            inputSchema = Tool.Input(properties = buildJsonObject {})
+        ) { _ ->
+            val result = runBlocking { listmonkService.getHealth() }
+            val responseText = if (result.isSuccess) {
+                Json.encodeToString(result.getOrThrow())
+            } else {
+                "Error getting health: ${result.exceptionOrNull()?.message}"
+            }
+            CallToolResult(content = listOf(TextContent(text = responseText)))
+        }
+    }
+
+    private fun registerGetDashboardStatsTool(server: Server) {
+        server.addTool(
+            name = "get_dashboard_stats",
+            description = "Get statistics counts for the dashboard",
+            inputSchema = Tool.Input(properties = buildJsonObject {})
+        ) { _ ->
+            val result = runBlocking { listmonkService.getDashboardStats() }
+            val responseText = if (result.isSuccess) {
+                Json.encodeToString(result.getOrThrow())
+            } else {
+                "Error getting dashboard stats: ${result.exceptionOrNull()?.message}"
+            }
+            CallToolResult(content = listOf(TextContent(text = responseText)))
+        }
+    }
+
+    // Transactional Tools
+    private fun registerSendTransactionalEmailTool(server: Server) {
+        server.addTool(
+            name = "send_transactional_email",
+            description = "Send a transactional message to a subscriber",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put("subscriber_email", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("Subscriber email address"))
+                    })
+                    put("subscriber_id", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("Subscriber ID"))
+                    })
+                    put("template_id", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("Template ID to use"))
+                    })
+                    put("template_name", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("description", JsonPrimitive("Template name to use"))
+                    })
+                    put("data", buildJsonObject {
+                        put("type", JsonPrimitive("object"))
+                        put("description", JsonPrimitive("Dynamic data to inject into the template"))
+                    })
+                }
+            )
+        ) { request ->
+            val email = request.arguments.getArgument("subscriber_email", "").takeIf { it.isNotBlank() }
+            val id = request.arguments.getArgument("subscriber_id", 0L).let { if (it == 0L) null else it.toInt() }
+            val templateId = request.arguments.getArgument("template_id", 0L).let { if (it == 0L) null else it.toInt() }
+            val templateName = request.arguments.getArgument("template_name", "").takeIf { it.isNotBlank() }
+            
+            val data = request.arguments["data"] as? JsonObject
+            
+            if (email == null && id == null) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(text = "Error: either subscriber_email or subscriber_id is required"))
+                )
+            }
+            
+            if (templateId == null && templateName == null) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(text = "Error: either template_id or template_name is required"))
+                )
+            }
+            
+            val txRequest = TransactionalMessageRequest(
+                subscriberEmail = email,
+                subscriberId = id,
+                templateId = templateId,
+                templateName = templateName,
+                data = data
+            )
+            
+            val result = runBlocking {
+                listmonkService.sendTransactionalEmail(txRequest)
+            }
+            
+            val responseText = if (result.isSuccess) {
+                "Transactional email sent successfully"
+            } else {
+                "Error sending transactional email: ${result.exceptionOrNull()?.message}"
+            }
+            
+            CallToolResult(
+                content = listOf(TextContent(text = responseText))
+            )
+        }
+    }
+
+    // Media Tools
+    private fun registerGetMediaTool(server: Server) {
+        server.addTool(
+            name = "get_media",
+            description = "Retrieve uploaded media files",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put("page", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("Page number (default: 1)"))
+                    })
+                    put("per_page", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("Items per page (default: 20)"))
+                    })
+                }
+            )
+        ) { request ->
+            val page = request.arguments.getArgument("page", 1L).toInt()
+            val perPage = request.arguments.getArgument("per_page", 20L).toInt()
+            
+            val result = runBlocking {
+                listmonkService.getMedia(page, perPage)
+            }
+            
+            val responseText = if (result.isSuccess) {
+                Json.encodeToString(result.getOrThrow())
+            } else {
+                "Error getting media: ${result.exceptionOrNull()?.message}"
+            }
+            
+            CallToolResult(
+                content = listOf(TextContent(text = responseText))
+            )
+        }
+    }
+
+    // Analytics Tools
+    private fun registerGetCampaignAnalyticsTool(server: Server) {
+        server.addTool(
+            name = "get_campaign_analytics",
+            description = "Retrieve analytics for a specific campaign",
+            inputSchema = Tool.Input(
+                properties = buildJsonObject {
+                    put("id", buildJsonObject {
+                        put("type", JsonPrimitive("integer"))
+                        put("description", JsonPrimitive("Campaign ID"))
+                    })
+                    put("type", buildJsonObject {
+                        put("type", JsonPrimitive("string"))
+                        put("enum", JsonArray(listOf(
+                            JsonPrimitive("links"),
+                            JsonPrimitive("views"),
+                            JsonPrimitive("clicks"),
+                            JsonPrimitive("bounces")
+                        )))
+                        put("description", JsonPrimitive("Type of analytics to retrieve"))
+                    })
+                },
+                required = listOf("id", "type")
+            )
+        ) { request ->
+            val id = request.arguments.getArgument("id", 0L).toInt()
+            val type = request.arguments.getArgument("type", "")
+            
+            if (id == 0 || type.isBlank()) {
+                return@addTool CallToolResult(
+                    content = listOf(TextContent(text = "Error: id and type are required"))
+                )
+            }
+            
+            val result = runBlocking {
+                listmonkService.getCampaignAnalytics(id, type)
+            }
+            
+            val responseText = if (result.isSuccess) {
+                Json.encodeToString(result.getOrThrow())
+            } else {
+                "Error getting campaign analytics: ${result.exceptionOrNull()?.message}"
             }
             
             CallToolResult(
